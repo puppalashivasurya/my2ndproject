@@ -1,45 +1,73 @@
 pipeline {
     agent any
 
-    options {
-        timestamps()
+    environment {
+        DOCKER_IMAGE = "username/devops-app"
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/username/devops-project.git'
+            }
+        }
 
         stage('Build') {
             steps {
-                echo 'Build stage running'
+                sh 'mvn clean package'
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('SonarQube Scan') {
             steps {
-                echo 'SonarQube analysis stage'
+                withSonarQubeEnv('sonar-server') {
+                    sh 'mvn sonar:sonar'
+                }
             }
         }
 
-        stage('Security Scan') {
+        stage('Trivy FS Scan') {
             steps {
-                echo 'Security scan stage'
+                sh 'trivy fs .'
             }
         }
 
-        stage('Test') {
+        stage('Docker Build') {
             steps {
-                echo 'Test stage running'
+                sh 'docker build -t $DOCKER_IMAGE .'
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh 'trivy image $DOCKER_IMAGE'
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                sh 'docker push $DOCKER_IMAGE'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f deployment.yaml'
+                sh 'kubectl apply -f service.yaml'
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline completed successfully ✅'
+            slackSend message: "✅ Build & Deployment Successful"
         }
         failure {
-            echo 'Pipeline failed ❌'
+            slackSend message: "❌ Pipeline Failed"
         }
-        always {
+    }
+}
+
             echo 'Pipeline finished'
         }
     }
