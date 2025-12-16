@@ -6,13 +6,14 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+
+        stage('Checkout Code') {
             steps {
                 git 'https://github.com/puppalashivasurya/my2ndproject.git'
             }
         }
 
-        stage('Build') {
+        stage('Build with Maven') {
             steps {
                 sh 'mvn clean package'
             }
@@ -60,7 +61,7 @@ pipeline {
 
     post {
         success {
-            slackSend message: "✅ Build & Deployment Successful"
+            slackSend message: "✅ Pipeline Success"
         }
         failure {
             slackSend message: "❌ Pipeline Failed"
@@ -68,7 +69,4 @@ pipeline {
     }
 }
 
-            echo 'Pipeline finished'
-        }
-    }
 }
